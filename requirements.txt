@@ -1,0 +1,10 @@
+nibabel
+albumentations
+numpy
+scipy
+opencv-python
+matplotlib
+torch
+torchvision
+ipykernel
+tdqm
