@@ -62,13 +62,7 @@ def reshape_masks(ndarray, to_shape):
     """
     h_in, w_in = ndarray.shape
     h_out, w_out = to_shape
-
-    # print(f"ndarray shape: {ndarray.shape}")
-    # print(f"to_shape shape: {to_shape}")
-
-    # ndarray shape: (224, 224)
-    # to_shape shape: (391, 289)
-
+    
     if h_in > h_out:
         h_offset = math.ceil((h_in - h_out) / 2)
         ndarray = ndarray[h_offset:(h_offset + h_out), :]

@@ -17,7 +17,6 @@ def open_nifti(file_path: str):
         volume = volume[..., None]
     return volume, affine, header
 
-
 def open_numpy(file_path: str):
     volume = np.load(file_path)
     v_n_dims = len(volume.shape)
