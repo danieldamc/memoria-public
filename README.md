@@ -18,11 +18,14 @@ git@github.com:danieldamc/memoria-public.git
 ```
 - Install the dependencies, For Conda users, you can create a new enviorment with:
 ```bash
-conda env create -f enviorement.yml 
+conda env create -f environment.yml
 ```
 and then activate the environment with:
 ```bash
 conda activate memoria
 ```
 - Download the dataset from [M&M's Challenge](https://www.ub.edu/mnms/)
-
+- Download models weights:
+```bash
+python weights/download_weights.py
+```
