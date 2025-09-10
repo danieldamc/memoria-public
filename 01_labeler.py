@@ -11,22 +11,32 @@ from torch.utils.data import DataLoader
 from src.models.unet import ResUnetv4
 from src.loaders.nifti import load_nii, save_nii
 
+# Scripts that Segment 3D or 4D CMR images using a 2D segmentation model
+# this is based in the code from:
+# https://www.spiedigitallibrary.org/conference-proceedings-of-spie/12567/125670Q/VENTSEG-efficient-open-source-framework-for-ventricular-segmentation/10.1117/12.2669932.short
 
-def convert_multiclass_mask(mask):
-    """
-    Transform multiclass mask [batch, num_classes, h, w] to [batch, h, w]
-    :param mask: Mask to transform
-    :return: Transformed multiclass mask
+
+def convert_multiclass_mask(mask: torch.Tensor) -> torch.Tensor:
+    """ Transform multiclass mask [batch, num_classes, h, w] to [batch, h, w]
+    Args:
+        mask (torch.Tensor): Multiclass mask
+    Returns:
+        torch.Tensor: Transformed multiclass mask
+    
     """
     return mask.max(1)[1]
 
 
-def apply_normalization(image, normalization_type):
-    """
-    https://www.statisticshowto.com/normalized/
-    :param image:
-    :param normalization_type:
-    :return:
+def apply_normalization(
+        image: np.ndarray, 
+        normalization_type: str
+    ) -> np.ndarray:
+    """ Applies normalization to the image https://www.statisticshowto.com/normalized/
+    Args:
+        image (np.ndarray): Image to normalize
+        normalization_type (str): Type of normalization to apply. Options are: 'none', 'reescale', 'standardize'
+    Returns:
+        np.ndarray: Normalized image
     """
     if normalization_type == "none":
         return image
@@ -44,21 +54,32 @@ def apply_normalization(image, normalization_type):
     assert False, "Unknown normalization: '{}'".format(normalization_type)
 
 
-def common_test_augmentation(img_size):
+def common_test_augmentation(img_size: int) -> list:
+    """ Common test augmentation for all datasets
+    Args:
+        img_size (int): Size of the image
+    Returns:
+        list: List of augmentations
+    """
     return [
         albumentations.PadIfNeeded(min_height=img_size, min_width=img_size, always_apply=True),
         albumentations.CenterCrop(height=img_size, width=img_size, always_apply=True),
         albumentations.Resize(img_size, img_size, always_apply=True)
     ]
 
-# TODO: if error with shapes is found check this function, 
+
+# If error with shapes is found check this function, 
 # it was made by previous contributor and can have some issues
-def reshape_masks(ndarray, to_shape): 
-    """
-    Reshapes a center cropped (or padded) array back to its original shape.
-    :param ndarray: (np.array) Mask Array to reshape
-    :param to_shape: (tuple) Final desired shape
-    :return: (np.array) Reshaped array to desired shape
+def reshape_masks(
+        ndarray: np.ndarray, 
+        to_shape: tuple
+    ) -> np.ndarray: 
+    """Reshapes a center cropped (or padded) array back to its original shape.
+    Args:
+        ndarray (np.array): Mask Array to reshape
+        to_shape (tuple): Final desired shape
+    Returns: 
+        np.array: Reshaped array to desired shape
     """
     h_in, w_in = ndarray.shape
     h_out, w_out = to_shape
@@ -84,7 +105,19 @@ def reshape_masks(ndarray, to_shape):
         ndarray = np.pad(ndarray, npad, 'constant', constant_values=0)
     return ndarray 
 
-def predict(model, image):
+
+def predict(
+        model: torch.nn.Module, 
+        image: np.ndarray
+    ) -> np.ndarray:
+    """Predict segmentation for a 2D MRI image
+    Args:
+        model (torch.nn.Module): Segmentation model
+        image (np.ndarray): 2D MRI image
+    Returns:
+        np.ndarray: Segmented 2D MRI image
+    """
+
     image = image.copy()
     image_shape = image.shape
 
@@ -111,11 +144,20 @@ def predict(model, image):
 
     return pred_mask
 
+
 def mri_predict(
-        mri_image,
-        model
+        mri_image: np.ndarray,
+        model: torch.nn.Module
     ) -> np.ndarray:
+    """ Predict segmentation for a 3D or 4D MRI image slice by slice
+
+    Args:
+        mri_image (np.ndarray): 3D or 4D MRI image
+        model (torch.nn.Module): Segmentation model
     
+    Returns:
+        np.ndarray: Segmented MRI image
+    """
     mri_image = mri_image.copy()
     n_dim = mri_image.ndim
 
@@ -143,10 +185,12 @@ def main(
     model.load_state_dict(state_dict, strict=False)
 
     for folder in tqdm(os.listdir(args.input)):
-
-
         mri_path = os.path.join(args.input, folder, f"{folder}{args.input_suffix}.{'nii.gz' if args.format == 'nifti' else 'npy'}")
         output_path = os.path.join(args.input, folder, f"{folder}{args.output_suffix}.{'nii.gz' if args.format == 'nifti' else 'npy'}")
+
+        if not os.path.isfile(mri_path):
+            print(f"File {mri_path} does not exist (supported formats are '.nii.gz' and '.npy'), skipping...")
+            continue
         
         if args.format == 'nifti':
             original_image, affine, header = load_nii(file_path=mri_path)
@@ -158,23 +202,24 @@ def main(
             save_nii(output_path, result_image, affine, header) 
         else:
             np.save(output_path, result_image)
+    return
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description='MRI Image Segmentation')
+    parser = argparse.ArgumentParser(description='CMR Image Segmentator')
 
     parser.add_argument(
-        '--input',
+        '-i', '--input',
         dest='input', 
         type=str, 
         required=True, 
-        help='Path to the folder containing the MRI images'
+        help='Path to the folder containing the CMR images'
     )
     parser.add_argument(
-        '--model_path',
+        '-m', '--model_path',
         dest='model_path',
         type=str, 
-        default="models/model_resnet34_unet_scratch_best_dice.pt" , 
+        default="weights/segmentation_model.pt",
         help='Path to the model file'
     )
     parser.add_argument(
@@ -191,13 +236,12 @@ if __name__ == "__main__":
         default='_sa_seg', 
         help='Suffix to add to the output file'
     )
-
     parser.add_argument(
         '-f', '--format',
         dest='format',
         type=str,
         default='nifti',
-        help='Format of the input file'
+        help='Format of the input file (nifti/numpy)'
     )
 
     args = parser.parse_args()

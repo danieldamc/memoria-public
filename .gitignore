@@ -209,3 +209,5 @@ __marimo__/
 # PyTorch model files
 */*.pt
 */*.pth
+
+data/
