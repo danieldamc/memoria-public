@@ -13,7 +13,7 @@ from src.loaders.nifti import load_nii, save_nii
 
 # Scripts that Segment 3D or 4D CMR images using a 2D segmentation model
 # this is based in the code from:
-# https://www.spiedigitallibrary.org/conference-proceedings-of-spie/12567/125670Q/VENTSEG-efficient-open-source-framework-for-ventricular-segmentation/10.1117/12.2669932.short
+# https://research.monash.edu/en/publications/ventseg-efficient-open-source-framework-for-ventricular-segmentat
 
 
 def convert_multiclass_mask(mask: torch.Tensor) -> torch.Tensor:

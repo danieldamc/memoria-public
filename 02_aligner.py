@@ -8,6 +8,7 @@ from tqdm import tqdm
 from src.mri.alignment import Alignment
 from src.loaders.nifti import load_nii, save_nii
 
+# Script to align MRI images and their segmentations using specified shift methods.
 
 def open_nifti(file_path: str) -> tuple:
     """ Open a NIfTI file and return the volume, affine, and header.

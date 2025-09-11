@@ -5,6 +5,8 @@ Superresolución y alineamiento de imágenes de eje corto del corazón obtenidas
 
 [Manuscript](https://repositorio.usm.cl/entities/tesis/090340cd-f955-4b98-91e5-2c340599f218)
 
+This is a continuation of previous work on [VentSeg](https://research.monash.edu/en/publications/ventseg-efficient-open-source-framework-for-ventricular-segmentat).
+
 # Setup
 ### Requisites
 - Linux OS
@@ -115,3 +117,13 @@ python 02_aligner.py --input <path_to_mri_images_dataset> [--shift <shift_type>]
   - Description: Specifies the input format for the images to be aligned.
   - Default: `nifti`
   - Options: `nifti` or `numpy`
+
+## `03_superresolucion.py`
+This script is designed to enhance the resolution of short-axis Cardiac MRI images using a pre-trained super-resolution model.
+
+### Usage
+```bash
+python
+```
+
+**Arguments**
