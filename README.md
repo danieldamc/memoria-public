@@ -14,7 +14,7 @@ Superresolución y alineamiento de imágenes de eje corto del corazón obtenidas
 ### Getting Started
 - Clone this repo
 ```bash
-git@github.com:danieldamc/memoria-public.git
+git clone git@github.com:danieldamc/memoria-public.git
 ```
 - Install the dependencies, For Conda users, you can create a new enviorment with:
 ```bash
@@ -69,3 +69,49 @@ python 01_labeler.py --input <path_to_mri_images_dataset> [--model_path <path_to
   - Options: `nifti` or `numpy`
 
 ## `02_aligner.py`
+This script is designed to align short-axis Cardiac MRI images and their segmentations. It utilizes cross-correlation and image processing techniques to archieve accurate alignment.
+
+### Usage
+```bash
+python 02_aligner.py --input <path_to_mri_images_dataset> [--shift <shift_type>] [--input_suffix <input_suffix>] [--output_suffix <output_suffix>] [--keep_type] [--format <input_format>]
+```
+
+**Arguments**
+- `--input` or `-i` (required):
+  - Description: Specifies the path to the folder containing the MRI images and segmentations you want to align.  
+  The folder containing the MRI must look like the following example:
+    ```
+    mri_scans/  
+    ├── PATIENT1/  
+    │   ├── PATIENT1_sa.nii.gz  
+    │   └── PATIENT1_sa_seg.nii.gz  
+    └── PATIENT2/  
+        ├── PATIENT2_sa.nii.gz  
+        └── PATIENT2_sa_seg.nii.gz
+    ```
+    Where the **folder name is the same as the filename of the `.nii.gz`**
+  - Example: If your images are located in a folder called `mri_scans`, you would use `--folder_path /path/to/mri_scans`
+- `--shift` or `-s` (optional):
+  - Description: Type of shift to apply to the image. Options are:
+    - `cm_hv`: Center of Mass alignment using the horizontal and vertical axes as reference.
+    - `xcorr_hv`: Cross-Correlation alignment using the horizontal and vertical axes as reference.
+    - `cm_4ch`: Center of Mass alignment using the 4-chamber view as reference.
+    - `xcorr_4ch`: Cross-Correlation alignment using the 4-chamber view.
+  - Default: `cm_hv`
+  - Example: If you want to align using cross-correlation with the 4-chamber view, you would use `--shift xcorr_4ch`
+- `--input_suffix` or `-is` (optional):
+  - Description: Suffixes of the CMR to be processed. The first suffix is for the CMR images, and the second is for the segmentations.
+  - Default: `_sa _sa_seg`
+  - Example: If you set `--input_suffix _sa _sa_seg`, an image named `PATIENT1_sa.nii.gz` and its segmentation `PATIENT1_sa_seg.nii.gz` will be processed.
+- `--output_suffix` or `-os` (optional):
+  - Description: Suffixes to add to the output file names after alignment. The first suffix is for the aligned CMR images, and the second is for the aligned segmentations.
+  - Default: `_sa_aligned _sa_seg_aligned`
+  - Example: If you set `--output_suffix _sa_aligned _sa_seg_aligned`, an image named `PATIENT1_sa.nii.gz` will have its aligned version saved as `PATIENT1_sa_aligned.nii.gz`, and its segmentation will be saved as `PATIENT1_sa_seg_aligned.nii.gz`
+- `--keep_type` or `-k` (optional):
+  - Description: If this flag is set, the type of shift applied to the image will be added to the output suffix.
+  - Default: `False`
+  - Example: If you set `--keep_type` and the shift type is `cm`, an image named `PATIENT1_sa.nii.gz` will have its aligned version saved as `PATIENT1_sa_cm.nii.gz`
+- `--format` or `-f` (optional):
+  - Description: Specifies the input format for the images to be aligned.
+  - Default: `nifti`
+  - Options: `nifti` or `numpy`

@@ -232,8 +232,8 @@ if __name__ == "__main__":
     parser.add_argument(
         '-os', '--output_suffix',
         dest='output_suffix',
-        type=str, 
-        default='_sa_seg', 
+        type=str,
+        default='_sa_seg',
         help='Suffix to add to the output file'
     )
     parser.add_argument(
@@ -241,6 +241,7 @@ if __name__ == "__main__":
         dest='format',
         type=str,
         default='nifti',
+        choices=['nifti', 'numpy'],
         help='Format of the input file (nifti/numpy)'
     )
 

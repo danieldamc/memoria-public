@@ -14,7 +14,7 @@ class Alignment(ShortAxis):
             original: np.ndarray, 
             segmentation: np.ndarray, 
             normalize: bool = False, 
-            shift_type: str = 'cm', 
+            shift_type: str = 'cm_hv', 
             weight_method: str = 's1_priority'
         ) -> None:
 
@@ -241,7 +241,7 @@ class Alignment(ShortAxis):
     def _get_shifts(
             self, 
             phase_idx: int, 
-            shift_type: str='cm', 
+            shift_type: str='cm_hv', 
             weight_method: str='s1_priority'
         ) -> Tuple[np.ndarray, np.ndarray]:
         r""" Get the shifts of the image
@@ -254,7 +254,7 @@ class Alignment(ShortAxis):
         Returns:
             Tuple[np.ndarray, np.ndarray]: vertical and horizontal shifts    
         """
-        if shift_type == 'cm':
+        if shift_type == 'cm_hv':
             vertical_shift = self._weight_shifts(
                 self._calculate_cm_shifts(phase_idx, label=1, axis=0), 
                 self._calculate_cm_shifts(phase_idx, label=2, axis=0), 
@@ -266,11 +266,11 @@ class Alignment(ShortAxis):
                 method=weight_method
             )
             return vertical_shift, horizontal_shift
-        elif shift_type == 'xcorr':
+        elif shift_type == 'xcorr_hv':
             vertical_shift = self._calculate_xcorr_shifts(phase_idx, axis=0)
             horizontal_shift = self._calculate_xcorr_shifts(phase_idx, axis=1)
             return vertical_shift, horizontal_shift
-        elif shift_type == '4ch_cm':
+        elif shift_type == 'cm_4ch':
             x_axis_0, y_axis_0 = self._calculate_4ch_cm_shifts(phase_idx, label=1, perpendicular=False) 
             x_axis_1, y_axis_1 = self._calculate_4ch_cm_shifts(phase_idx, label=1, perpendicular=True)
             vertical_shift_1 = x_axis_0 + x_axis_1
@@ -293,7 +293,7 @@ class Alignment(ShortAxis):
             # )
             return vertical_shift_1, horizontal_shift_1
         
-        elif shift_type == '4ch_xcorr':
+        elif shift_type == 'xcorr_4ch':
             x_axis_0, y_axis_0 = self._calculate_4ch_xcorr_shifts(phase_idx=phase_idx, axis=0)
             x_axis_1, y_axis_1 = self._calculate_4ch_xcorr_shifts(phase_idx=phase_idx, axis=1)
 
@@ -306,7 +306,7 @@ class Alignment(ShortAxis):
             
     def _alingment(
             self, 
-            shift_type= 'cm', 
+            shift_type= 'cm_hv', 
             weight_method= 's1_priority'
         ) -> Tuple[np.ndarray, np.ndarray]:
         r""" Aling the MRI
@@ -491,7 +491,7 @@ class Alignment(ShortAxis):
         
     def realingment(
             self, 
-            shift_type: str='cm', 
+            shift_type: str='cm_hv', 
             weight_method: str='s1_priority'
         ) -> Tuple[np.ndarray, np.ndarray]:
         r""" Realignment of the MRI

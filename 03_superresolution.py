@@ -210,25 +210,26 @@ if __name__ == '__main__':
 
     # command 1: python superresolution.py --input dataset/Original/Custom_Split/Test/A1E9Q1/A1E9Q1_sa.nii.gz --output test_output/ -o numpy -f -d
     # command 2: python superresolution.py --input dataset/Alignment/processed/8mm_dataset/processed/npy/volumes/  --output test_output/ -o numpy -d
+    # python 03_superresolution.py --input data/Validation/A5C2D2/A5C2D2_sa.nii.gz --output test_output/ -o numpy -f -d
 
     parser = argparse.ArgumentParser(
         description='Super resolution Utility for MRI in Numpy or Nifti format'
     )
 
     parser.add_argument(
-        '--input', 
+        '-i', '--input', 
         type=str,
         required=True,
         help='Path to the folder with the input files'
     )
     parser.add_argument(
-        '--output', 
+        '-o', '--output', 
         type=str, 
         required=True,
         help='path to the folder where the output files will be saved'
     )
     parser.add_argument(
-        '-o', '--output_format',
+        '-of', '--output_format',
         choices=['nifti', 'numpy'],
         default='numpy',
         help='Specify the output format'
@@ -246,12 +247,6 @@ if __name__ == '__main__':
         help='Downsample the image in the spatial dimension'
     )
     parser.add_argument(
-        '-sg', '--segment',
-        dest='segment',
-        action='store_true',
-        help='Specify if the output should be segmented'
-    )
-    parser.add_argument(
         '-s', '--suffix',
         dest='suffix',
         type=str,
@@ -267,7 +262,7 @@ if __name__ == '__main__':
     parser.add_argument(
         '--model_path', 
         type=str, 
-        default="models/ResUnet_32-512_FINAL_PRELIMINAR_model_10E.pth", 
+        default="weights/superresolution_model.pth", 
         help='Path to the model file'
     )
     parser.add_argument(

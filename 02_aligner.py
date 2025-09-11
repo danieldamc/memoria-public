@@ -8,7 +8,19 @@ from tqdm import tqdm
 from src.mri.alignment import Alignment
 from src.loaders.nifti import load_nii, save_nii
 
-def open_nifti(file_path: str):
+
+def open_nifti(file_path: str) -> tuple:
+    """ Open a NIfTI file and return the volume, affine, and header.
+    
+    Args:
+        file_path (str): Path to the NIfTI file.
+    Returns:
+        volume (np.ndarray): The image volume.
+        affine (np.ndarray): The affine transformation matrix.
+        header (nibabel.Nifti1Header): The NIfTI header.
+    Raises:
+        ValueError: If the volume has less than 3 dimensions.
+    """
     volume, affine, header = load_nii(file_path)
     v_n_dims = len(volume.shape)
     if v_n_dims < 3:
@@ -17,7 +29,16 @@ def open_nifti(file_path: str):
         volume = volume[..., None]
     return volume, affine, header
 
-def open_numpy(file_path: str):
+
+def open_numpy(file_path: str) -> np.ndarray:
+    """ Open a NumPy file and return the volume.
+    Args:
+        file_path (str): Path to the NumPy file.
+    Returns:
+        volume (np.ndarray): The image volume.
+    Raises:
+        ValueError: If the volume has less than 3 dimensions.
+    """
     volume = np.load(file_path)
     v_n_dims = len(volume.shape)
     if v_n_dims < 3:
@@ -26,92 +47,119 @@ def open_numpy(file_path: str):
         volume = volume[..., None]
     return volume
 
-def XAND(a, b):
-    return a and b
-
 def process_mri(
-        folder_path, 
-        folder, 
-        shift,
-        output_format='same',
-        output_suffix = ['_mov_aligned_xcorr_hv', '_mov_seg_aligned_xcorr_hv'],
-        input_suffix=['_mov', '_mov_seg']
+        folder_path: str, 
+        folder: str, 
+        shift: str,
+        input_format: str = 'nifti',
+        input_suffix: list[str] = ['_sa', '_sa_seg'],
+        output_suffix: list[str] = ['_sa_aligned', '_sa_seg_aligned'],
+        keep_type: bool = False,
     ) -> None:
-    
+    """ Process a single MRI image and its segmentation.
+    Args:
+        folder_path (str): Path to the folder containing the MRI images.
+        folder (str): Name of the folder containing the MRI images.
+        shift (str): Type of shift to apply to the image.
+        output_format (str): Output format for the aligned images. Options are 'nifti
+        output_suffix (list[str]): Suffixes for the output files.
+        input_suffix (list[str]): Suffixes for the input files.
+    Returns:
+        None
+    """
     path = os.path.join(folder_path, folder)
 
-    fileformat = ".nii.gz" 
+    file_format = ".nii.gz" if input_format == 'nifti' else ".npy"
+    mri_path = os.path.join(path, f"{folder}{input_suffix[0]}{file_format}")
+    segmentation_path = os.path.join(path, f"{folder}{input_suffix[1]}{file_format}")
 
-    mri_path = os.path.join(path, f"{folder}{input_suffix[0]}.nii.gz")
-    mri_is_nifti = os.path.isfile(mri_path)
-    segmentation_path = os.path.join(path, f"{folder}{input_suffix[1]}.nii.gz")
-    segmentation_is_nifti = os.path.isfile(segmentation_path)
+    if not os.path.exists(mri_path) or not os.path.exists(segmentation_path):
+        print(f"Skipping {folder} as files are missing, check input suffixes and format")
+        return None
 
-    same_format = XAND(mri_is_nifti, segmentation_is_nifti)
-    # print(mri_is_nifti, segmentation_is_nifti)
-    # if not same_format:
-    #     raise ValueError("original and segmentation files are not in the same format")
-    is_nifti = mri_is_nifti
-
-    if is_nifti:
-        mri_path = os.path.join(path, f"{folder}{input_suffix[0]}.nii.gz")
-        segmentation_path = os.path.join(path, f"{folder}{input_suffix[1]}.nii.gz")
-
+    if input_format == "nifti":
         mri_image, mri_affine, mri_header = open_nifti(mri_path)
         segmentation_image, segmentation_affine, segmentation_header = open_nifti(segmentation_path)
     else:
-        mri_path = os.path.join(path, f"{folder}{input_suffix[0]}.npy")
-        segmentation_path = os.path.join(path, f"{folder}{input_suffix[1]}.npy")
-
         mri_image = open_numpy(mri_path)
         segmentation_image = open_numpy(segmentation_path)
     
-    mri_affine = np.eye(4) if not is_nifti else mri_affine.tolist()
-    segmentation_affine = np.eye(4) if not is_nifti else segmentation_affine.tolist()
+    mri_affine = np.eye(4) if input_format != "nifti" else mri_affine.tolist()
+    segmentation_affine = np.eye(4) if input_format != "nifti" else segmentation_affine.tolist()
 
     Alignment_ = Alignment(original=mri_image, segmentation=segmentation_image, shift_type=shift)
     aligned_mri = Alignment_.get_volume(type_image='original', aligned=True)
     aligned_segmentation = Alignment_.get_volume(type_image='segmentation', aligned=True)
 
+    keep_type = f'_{shift}' if keep_type else ''
 
-    if output_format == 'numpy':
-        np.save(os.path.join(path, f'{folder}{output_suffix[0]}.npy'), aligned_mri)
-        np.save(os.path.join(path, f'{folder}{output_suffix[1]}.npy'), aligned_segmentation) 
-    elif output_format == 'nifti':
-        save_nii(os.path.join(path, f'{folder}{output_suffix[0]}.nii.gz'), aligned_mri, mri_affine)
-        save_nii(os.path.join(path, f'{folder}{output_suffix[1]}.nii.gz'), aligned_segmentation, segmentation_affine)
-    elif output_format == 'same':
-        if is_nifti:
-            save_nii(os.path.join(path, f'{folder}{output_suffix[0]}.nii.gz'), aligned_mri, mri_affine)
-            save_nii(os.path.join(path, f'{folder}{output_suffix[1]}.nii.gz'), aligned_segmentation, segmentation_affine)
-        else:
-            np.save(os.path.join(path, f'{folder}{output_suffix[0]}.npy'), aligned_mri)
-            np.save(os.path.join(path, f'{folder}{output_suffix[1]}.npy'), aligned_segmentation)
-    
+    if input_format == "nifti":
+        save_nii(os.path.join(path, f'{folder}{output_suffix[0]}{keep_type}.nii.gz'), aligned_mri, mri_affine)
+        save_nii(os.path.join(path, f'{folder}{output_suffix[1]}{keep_type}.nii.gz'), aligned_segmentation, segmentation_affine)
+    elif input_format == "numpy":
+        np.save(os.path.join(path, f'{folder}{output_suffix[0]}{keep_type}.npy'), aligned_mri)
+        np.save(os.path.join(path, f'{folder}{output_suffix[1]}{keep_type}.npy'), aligned_segmentation)
+    return None
+
+
 def main(args: argparse.Namespace) -> None:
     folder_path = args.folder_path
-
     for folder in tqdm(os.listdir(folder_path)):
-        process_mri(folder_path, folder, args.shift, args.output_format)
+        process_mri(folder_path=folder_path, 
+                    folder=folder, 
+                    shift=args.shift, 
+                    input_format=args.input_format,
+                    input_suffix=args.input_suffix,
+                    output_suffix=args.output_suffix,
+                    keep_type=args.keep_type)
     return None
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='MRI Image Segmentation')
 
     parser.add_argument(
-        '--folder_path', 
+        '-i', '--input', 
         dest='folder_path',
         type=str, 
         required=True, 
         help='Path to the folder containing the MRI images'
     )
     parser.add_argument(
-        '-s', '--shift_type',
+        '-s', '--shift',
         dest='shift',
         type=str,
-        default='cm',
-        choices=['cm', 'xcorr', '4ch_cm', '4ch_xcorr'],
+        default='cm_hv',
+        choices=['cm_hv', 'xcorr_hv', 'cm_4ch', 'xcorr_4ch'],
         help='Type of shift to apply to the image'
+    )
+    parser.add_argument(
+        '-is', '--input_suffix',
+        dest='input_suffix',
+        type=str,
+        nargs=2,
+        default=['_sa', '_sa_seg'],
+        help='Suffixes for the input files'
+    )
+    parser.add_argument(
+        '-os', '--output_suffix',
+        dest='output_suffix',
+        type=str,
+        nargs=2,
+        default=['_sa_aligned', '_sa_seg_aligned'],
+        help='Suffixes for the output files'
+    )
+    parser.add_argument(
+        '-k', '--keep_type',
+        action='store_true',
+        help='Add the shift type to the output suffix'
+    )
+    parser.add_argument(
+        '-f', '--format',
+        dest='input_format',
+        type=str,
+        default='nifti',
+        choices=['nifti', 'numpy'],
+        help='Format of the input files'
     )
     parser.add_argument(
         '-o', '--output_format',
