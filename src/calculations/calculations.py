@@ -1,14 +1,14 @@
 import numpy as np
 
-
 def get_label_centroid(img, label=1, cv_format=False, is_transposed=True):
-    """
-    Function to calculate the centroid of a label in an image
-    
-    :param img: (np.array) Image to calculate the centroid
-    :param label: (int) Label to calculate the centroid
-    :return: (tuple) Centroid coordinates (x, y)
-
+    """Function to calculate the centroid of a label in an image
+    Args:
+        img (np.array): Image to calculate the centroid
+        label (int, optional): Label to calculate the centroid. Defaults to 1.
+        cv_format (bool, optional): If True, the y-axis is inverted. Defaults to False.
+        is_transposed (bool, optional): If True, the image is transposed. Defaults to True.
+    Returns:
+        (tuple): Centroid coordinates (x, y) or None if the label is not found
     """
     y_coords, x_coords = np.where(img == label)
 
@@ -27,11 +27,14 @@ def get_label_centroid(img, label=1, cv_format=False, is_transposed=True):
 
 
 def get_ventricle_function(image, cv_format=False, is_transposed=True, perpendicular=False):
-    """
-    Function to calculate the line that crosses the ventricles
-
-    :param image: (np.array) Image to calculate the line
-    :return: (tuple) Line function (m, b)
+    """Function to calculate the line that crosses the ventricles
+    Args:
+        image (np.array): Image to calculate the line
+        cv_format (bool, optional): If True, the y-axis is inverted. Defaults to False.
+        is_transposed (bool, optional): If True, the image is transposed. Defaults to True.
+        perpendicular (bool, optional): If True, returns the perpendicular line to the ventricles line. Defaults to False.
+    Returns:
+        (tuple): Slope (m) and y-intercept (b) of the line
     """
     centroid_rv = get_label_centroid(image, 1, cv_format=cv_format, is_transposed=is_transposed)
     centroid_lv = get_label_centroid(image, 3, cv_format=cv_format, is_transposed=is_transposed)
@@ -54,6 +57,14 @@ def get_ventricle_function(image, cv_format=False, is_transposed=True, perpendic
 
 
 def get_perpendicular_lv_function(image, cv_format=False, is_transposed=True):
+    """Function to calculate the line perpendicular to the ventricles line that crosses the right ventricle
+    Args:
+        image (np.array): Image to calculate the line
+        cv_format (bool, optional): If True, the y-axis is inverted. Defaults to False.
+        is_transposed (bool, optional): If True, the image is transposed. Defaults to True.
+    Returns:
+        (tuple): Slope (m) and y-intercept (b) of the perpendicular line.    
+    """
     centroid_rv = get_label_centroid(image, 1, cv_format=cv_format, is_transposed=is_transposed)
     m, _ = get_ventricle_function(image, cv_format=cv_format, is_transposed=is_transposed)
     m_perpendicular = -1/m
@@ -66,7 +77,17 @@ def get_perpendicular_lv_function(image, cv_format=False, is_transposed=True):
 
     return m_perpendicular, b_perpendicular
 
+
 def get_limits(height, width, m, b):
+    """Function to calculate the intersection points of a line with the image borders
+    Args:
+        height (int): Height of the image
+        width (int): Width of the image
+        m (float): Slope of the line
+        b (float): Y-intercept of the line
+    Returns:
+        (list): List of intersection points (x, y)
+    """
     x_left, y_left = 0, b
     x_right, y_right = width - 1, m * (width - 1) + b
     x_top, y_top = -b / m, 0 
@@ -83,6 +104,15 @@ def get_limits(height, width, m, b):
     return points
 
 def get_limits_2(height, width, m, b):
+    """Function to calculate the intersection points of a line with the image borders
+    Args:
+        height (int): Height of the image
+        width (int): Width of the image
+        m (float): Slope of the line
+        b (float): Y-intercept of the line
+    Returns:
+        (list): List of intersection points (x, y)
+    """
     points = set()  # Use a set to avoid duplicates
     y_left = b
     if 0 <= y_left < height:

@@ -8,67 +8,26 @@ import cv2 as cv
 from torch import nn
 from copy import deepcopy as dc
 from tqdm import tqdm
+from skimage.exposure import match_histograms
 
-from src.loaders.nifti import load_nii, save_nii
+from src.loaders.nifti import save_nii
 from src.models.resunet import ResUnet
+from src.loaders.mri import open_nifti, open_numpy
+from src.processing.preprocessing import preprocess_image, preprocess_volume
+from src.processing.postprocessing import postprocess_image
 
 # Script to apply super-resolution on MRI images using a pre-trained model.
-# TODO: Fix prediction because is having some issues with the intensity values.
-
-def open_nifti(file_path: str) -> tuple[np.ndarray, np.ndarray, dict]:
-    volume, affine, header = load_nii(file_path)
-    v_n_dims = len(volume.shape)
-    if v_n_dims < 4:
-        raise ValueError('Volume must have at least 4 dimensions')
-    return volume, affine, header
-
-
-def open_numpy(file_path: str) -> np.ndarray:
-    volume = np.load(file_path)
-    v_n_dims = len(volume.shape)
-    if v_n_dims < 3:
-        raise ValueError('Volume must have at least 3 dimensions')
-    if len(volume.shape) == 3:
-        volume = volume[..., None]
-    return volume
-
 
 def downsample_volume(volume: np.ndarray) -> np.ndarray:
+    """Function to downsample the volume by a factor of 2 in the slice dimension.
+    Args:
+        volume (np.ndarray): Input volume of shape (H, W, S, P).
+    Returns:
+        volume (np.ndarray): Downsampled volume of shape (H, W, S/2, P).
+    """
     height, width, slice_count, phase_count = volume.shape
     indices_idxs = np.arange(0, slice_count, 2)
     return volume[:, :, indices_idxs, :]
-
-
-def preprocess_volume(volume: np.ndarray) -> np.ndarray:
-    def preprocess_image(
-            image: np.ndarray, 
-            h: int, 
-            w: int
-        ) -> np.ndarray:
-        max_hw = max(h, w)
-        pad_h = (max_hw - h) // 2
-        pad_w = (max_hw - w) // 2
-        pad_h_extra = (max_hw - h) % 2
-        pad_w_extra = (max_hw - w) % 2
-        image = np.pad(
-            image,
-            pad_width=((pad_h, pad_h + pad_h_extra), (pad_w, pad_w + pad_w_extra)),
-            mode='constant',
-            constant_values=0
-        )
-        image = cv.resize(image, (224, 224), interpolation=cv.INTER_NEAREST)
-        return image
-
-    volume = dc(volume)
-
-    height, width, slices, phases = volume.shape
-    processed_volume = np.zeros((224, 224, slices, phases))
-
-    for i in range(slices):
-        for j in range(phases):
-            processed_volume[:, :, i, j] = preprocess_image(volume[:, :, i, j], height, width)
-
-    return processed_volume
 
 
 def predict(
@@ -76,7 +35,16 @@ def predict(
         model: nn.Module,
         device: str
     ) -> np.ndarray:
+    """Function to predict the output of a model given an input.
+    Args:
+        input (np.ndarray): Input image of shape (2, H, W).
+        model (nn.Module): The model to use for prediction.
+        device (str): Device to run the model on ('cpu' or 'cuda').
+    Returns:
+        output (np.ndarray): The predicted output image of shape (1, H, W).
+    """
 
+    model.eval()
     with torch.no_grad():
         input = torch.tensor(input, dtype=torch.float32).unsqueeze(0).to(device)
         output = model(input)
@@ -91,20 +59,32 @@ def volume_prediction(
     device: str
     ) -> np.ndarray:
 
-    _, _, slice_count, phase_count = volume.shape
+    volume = dc(volume)
+
+    h_original, w_original, slice_count, phase_count = volume.shape
     new_slice_count = slice_count * 2 - 1
-    new_volume = np.zeros((input_size, input_size, new_slice_count, phase_count))
+    new_volume = np.zeros((h_original, w_original, new_slice_count, phase_count))
 
     for j in range(phase_count):
         for i in range(slice_count-1):
             slice_1 = volume[:, :, i, j]
             slice_2 = volume[:, :, i+1, j]
 
-            input_image = np.stack([slice_1, slice_2], axis=0)
-            output_image = predict(input_image, model, device)
+            slice_1_preprocessed = preprocess_image(slice_1, h_original, w_original)
+            slice_2_preprocessed = preprocess_image(slice_2, h_original, w_original)
+
+            input_image = np.stack([slice_1_preprocessed, slice_2_preprocessed], axis=0)
+            output_image = predict(input_image, model, device).squeeze(0).squeeze(0)
+            output_image = postprocess_image(output_image, h_original, w_original)
+
+            output_image = np.clip(output_image, 0, 1)
+            match_slice_1 = match_histograms(output_image, slice_1)
+            match_slice_2 = match_histograms(output_image, slice_2)
+
+            output_image = match_slice_1 * 0.5 + match_slice_2 * 0.5
 
             new_volume[:, :, i*2, j] = slice_1
-            new_volume[:, :, i*2+1, j] = output_image.squeeze().squeeze()
+            new_volume[:, :, i*2+1, j] = output_image
 
             if i == slice_count - 2:
                 new_volume[:, :, i*2+2, j] = slice_2
@@ -116,6 +96,15 @@ def init_model(
     model_path: str, 
     device: str
     ) -> nn.Module:
+    """Function to initialize the model from a given path.
+    Args:
+        model_path (str): Path to the model file.
+        device (str): Device to run the model on ('cpu' or 'cuda').
+    Returns:
+        model (nn.Module): The initialized model.
+    Raises:
+        ValueError: If the model file is not found.
+    """
 
     model = ResUnet(in_channels=2,
                     out_channels=1,
@@ -143,6 +132,19 @@ def process_file(
     downsample: bool = True, 
     device: str = 'cpu'
     ) -> None:
+    """Function to process a single file and save the output.
+    Args:
+        filename (str): Path to the input file.
+        format_ (str): Format of the input file ('nifti' or 'numpy').
+        input_suffix (str): Suffix of the input file to be processed.
+        output_suffix (str): Suffix to be added to the output file.
+        model (nn.Module): The model to use for prediction.
+        model_input_size (int): Size of the input image for the model.
+        downsample (bool): Whether to downsample the image in the spatial dimension.
+        device (str): Device to run the model on ('cpu' or 'cuda').
+    Returns:
+        None
+    """
 
     if format_ == 'nifti':
         volume, affine, header = open_nifti(filename)
@@ -209,12 +211,6 @@ def main(
     
 
 if __name__ == '__main__':
-
-    # command 1: python superresolution.py --input dataset/Original/Custom_Split/Test/A1E9Q1/A1E9Q1_sa.nii.gz --output test_output/ -o numpy -f -d
-    # command 2: python superresolution.py --input dataset/Alignment/processed/8mm_dataset/processed/npy/volumes/  --output test_output/ -o numpy -d
-    # python 03_superresolution.py --input data/Validation/A5C2D2/A5C2D2_sa.nii.gz --output test_output/ -o numpy -f -d
-    # python 03_superresolution.py -i data/Validation/A5C2D2/A5C2D2_sa.nii.gz -s -os _sa_sr -d
-    # python 03_superresolution.py -i data/Validation/
 
     parser = argparse.ArgumentParser(
         description='Super resolution Utility for MRI in Numpy or Nifti format'

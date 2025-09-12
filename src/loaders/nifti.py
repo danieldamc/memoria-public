@@ -1,28 +1,27 @@
 import nibabel as nib
 import numpy as np
 
-def load_nii(file_path):
+def load_nii(file_path: str) -> tuple:
+    """Function to load a 'nii' or 'nii.gz' file
+    Args:
+        file_path (str): Path to the 'nii' or 'nii.gz' file.
+    Returns:
+        volume (np.ndarray): The image volume.
+        affine (np.ndarray): The affine transformation matrix.
+        header (nibabel.Nifti1Header): The NIfTI header.
     """
-    Function to load a 'nii' or 'nii.gz' file, The function returns
-    everyting needed to save another 'nii' or 'nii.gz'
-    in the same dimensional space, i.e. the affine matrix and the header
-    :param file_path: (string) Path of the 'nii' or 'nii.gz' image file name
-    :return: Three element, the first is a numpy array of the image values (height, width, slices, phases),
-             ## (No) the second is the affine transformation of the image, and the
-             ## (No) last one is the header of the image.
-    """
-
     nimg = nib.load(file_path)
     return np.asanyarray(nimg.dataobj), nimg.affine, nimg.header
 
 def save_nii(file_path, image, affine, header=None):
-    """
-    Function to save a 'nii' or 'nii.gz' file
-    :param file_path: (string) Path of the 'nii' or 'nii.gz' image file name
-    :param data: (numpy array) Image data to save
-    :param affine: (numpy array) Affine transformation of the image
-    :param header: (nibabel.nifti1.Nifti1Header) Header of the image
-    :return: None
+    """Function to save a 'nii' or 'nii.gz' file
+    Args:
+        file_path (str): Path to save the 'nii' or 'nii.gz' file.
+        image (np.ndarray): The image volume to save.
+        affine (np.ndarray): The affine transformation matrix.
+        header (nibabel.Nifti1Header, optional): The NIfTI header
+    Returns:
+        None    
     """
     if header is None:
         nifti_image = nib.Nifti1Image(image, affine)
