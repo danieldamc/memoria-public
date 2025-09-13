@@ -9,6 +9,9 @@ from src.mri.alignment import Alignment
 from src.loaders.nifti import save_nii
 from src.loaders.mri import open_nifti, open_numpy
 
+import warnings
+warnings.filterwarnings("ignore", category=RuntimeWarning)
+
 # Script to align MRI images and their segmentations using specified shift methods.
 
 def process_mri(
@@ -25,7 +28,7 @@ def process_mri(
         folder_path (str): Path to the folder containing the MRI images.
         folder (str): Name of the folder containing the MRI images.
         shift (str): Type of shift to apply to the image.
-        output_format (str): Output format for the aligned images. Options are 'nifti
+        input_format (str): Format of the input files ('nifti' or 'numpy').
         output_suffix (list[str]): Suffixes for the output files.
         input_suffix (list[str]): Suffixes for the input files.
     Returns:
@@ -124,14 +127,6 @@ if __name__ == "__main__":
         default='nifti',
         choices=['nifti', 'numpy'],
         help='Format of the input files'
-    )
-    parser.add_argument(
-        '-o', '--output_format',
-        dest='output_format',
-        type=str,
-        default='same',
-        choices=['nifti', 'numpy', 'same'],
-        help='Output format for the aligned images'
     )
     args = parser.parse_args()
     folder_path = args.folder_path

@@ -62,9 +62,9 @@ def common_test_augmentation(img_size: int) -> list:
         list: List of augmentations
     """
     return [
-        albumentations.PadIfNeeded(min_height=img_size, min_width=img_size, always_apply=True),
-        albumentations.CenterCrop(height=img_size, width=img_size, always_apply=True),
-        albumentations.Resize(img_size, img_size, always_apply=True)
+        albumentations.PadIfNeeded(min_height=img_size, min_width=img_size),
+        albumentations.CenterCrop(height=img_size, width=img_size),
+        albumentations.Resize(img_size, img_size)
     ]
 
 

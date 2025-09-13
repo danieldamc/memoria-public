@@ -17,10 +17,12 @@ This is a continuation of previous work on [VentSeg](https://research.monash.edu
 - Clone this repo
 ```bash
 git clone git@github.com:danieldamc/memoria-public.git
+cd memoria-public
 ```
 or
 ```bash
 git clone https://github.com/danieldamc/memoria-public.git
+cd memoria-public
 ```
 - Install the dependencies, For Conda users, you can create a new environment with:
 ```bash

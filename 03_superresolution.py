@@ -54,14 +54,16 @@ def predict(
 
 def volume_prediction(
     volume: np.ndarray, 
-    model: nn.Module, 
+    model: nn.Module,
+    h_original: int,
+    w_original: int,
     input_size: int,
     device: str
     ) -> np.ndarray:
 
     volume = dc(volume)
 
-    h_original, w_original, slice_count, phase_count = volume.shape
+    _, _, slice_count, phase_count = volume.shape
     new_slice_count = slice_count * 2 - 1
     new_volume = np.zeros((h_original, w_original, new_slice_count, phase_count))
 
@@ -83,11 +85,12 @@ def volume_prediction(
 
             output_image = match_slice_1 * 0.5 + match_slice_2 * 0.5
 
-            new_volume[:, :, i*2, j] = slice_1
+            
+            new_volume[:, :, i*2, j] = cv.resize(slice_1, (h_original, w_original), interpolation=cv.INTER_NEAREST)
             new_volume[:, :, i*2+1, j] = output_image
 
             if i == slice_count - 2:
-                new_volume[:, :, i*2+2, j] = slice_2
+                new_volume[:, :, i*2+2, j] = cv.resize(slice_2, (h_original, w_original), interpolation=cv.INTER_NEAREST)
 
     return new_volume.astype(np.float32)
 
@@ -158,14 +161,15 @@ def process_file(
     if downsample:
         volume = downsample_volume(volume)
 
+    h_original, w_original, _, _ = volume.shape
     volume = preprocess_volume(volume)
-    new_volume = volume_prediction(volume, model, model_input_size, device)
+    new_volume = volume_prediction(volume, model, h_original, w_original, model_input_size, device)
 
     if format_ == 'numpy':
         np.save(f'{output_filename}{output_suffix}.npy', new_volume)
     else:
         affine = np.eye(4) if format_ != "nifti" else affine.tolist()
-        save_nii(f'{output_filename}{output_suffix}.nii.gz', new_volume, affine=affine)
+        save_nii(f'{output_filename}{output_suffix}.nii.gz', new_volume, affine=affine, header=header)
 
 
 def main(
