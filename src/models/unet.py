@@ -4,7 +4,9 @@ import torch.nn.functional as F
 import torchvision 
 
 """
- RESNET34 UNET PRETRAINED ENCODER
+RESNET34 UNET PRETRAINED ENCODER
+CODE FROM https://research.monash.edu/en/publications/ventseg-efficient-open-source-framework-for-ventricular-segmentat
+NOT ORGANIZED
 """
 
 
