@@ -1,14 +1,19 @@
 import numpy as np
 
 
-def shift_array(image: np.ndarray, shift: int, axis=0) -> np.ndarray:
-    """
-    Function to roll the elements of a multi-Dimensional array with zero padding.
-
-    :param image: (np.array) Image to shift
-    :param shift: (int) Number of positions to shift
-    :param axis: (int) Axis to shift
-    :return: (np.array) Shifted image
+def shift_array(
+        image: np.ndarray, 
+        shift: int, 
+        axis=0
+    ) -> np.ndarray:
+    """Function to roll the elements of a multi-Dimensional array with zero padding.
+    Args:
+        image (np.ndarray): Input array to be shifted.
+        shift (int): Number of places by which elements are shifted. 
+                     Positive values shift right/down, negative values shift left/up.
+        axis (int, optional): Axis along which to shift. Defaults to 0.
+    Returns:
+        np.ndarray: The shifted array with zero padding.
     """
     if shift == 0:
         return image

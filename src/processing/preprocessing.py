@@ -8,6 +8,14 @@ def preprocess_image(
         h: int, 
         w: int
     ) -> np.ndarray:
+    r"""Preprocess the image by resizing and padding it to 224x224.
+    Args:
+        image (np.ndarray): The input image to be preprocessed.
+        h (int): The height of the input image.
+        w (int): The width of the input image.
+    Returns:
+        np.ndarray: The preprocessed image of size 224x224.
+    """
     max_hw = max(h, w)
     pad_h = (max_hw - h) // 2
     pad_w = (max_hw - w) // 2
@@ -24,6 +32,12 @@ def preprocess_image(
 
 
 def preprocess_volume(volume: np.ndarray) -> np.ndarray:
+    r"""Preprocess the 3D volume by resizing and padding each slice to 224x224.
+    Args:
+        volume (np.ndarray): The input 3D volume to be preprocessed.stre
+    Returns:
+        np.ndarray: The preprocessed 3D volume with each slice of size 224x224.
+    """
     volume = dc(volume)
     height, width, slices, phases = volume.shape
     processed_volume = np.zeros((224, 224, slices, phases))

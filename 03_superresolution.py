@@ -60,7 +60,17 @@ def volume_prediction(
     input_size: int,
     device: str
     ) -> np.ndarray:
-
+    """Function to apply super-resolution on a 4D volume using a pre-trained model.
+    Args:
+        volume (np.ndarray): Input 4D volume of shape (H, W, S, P).
+        model (nn.Module): The pre-trained model for super-resolution.
+        h_original (int): Original height of the volume.
+        w_original (int): Original width of the volume.
+        input_size (int): Size of the input image for the model.
+        device (str): Device to run the model on ('cpu' or 'cuda').
+    Returns:
+        new_volume (np.ndarray): The super-resolved 4D volume of shape (H, W, 2*S-1, P).
+    """
     volume = dc(volume)
 
     _, _, slice_count, phase_count = volume.shape
