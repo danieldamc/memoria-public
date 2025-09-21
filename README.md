@@ -1,4 +1,4 @@
-# memoria-public
+# thesis-public
 This is the public repository for my undergrad thesis titled:
 
 Superresolución y alineamiento de imágenes de eje corto del corazón obtenidas por resonancia magnética cardiovascular
@@ -16,13 +16,13 @@ This is a continuation of previous work on [VentSeg](https://research.monash.edu
 ### Getting Started
 - Clone this repo
 ```bash
-git clone git@github.com:danieldamc/memoria-public.git
-cd memoria-public
+git clone git@github.com:danieldamc/thesis-public.git
+cd thesis-public
 ```
 or
 ```bash
-git clone https://github.com/danieldamc/memoria-public.git
-cd memoria-public
+git clone https://github.com/danieldamc/thesis-public.git
+cd thesis-public
 ```
 - Install the dependencies, For Conda users, you can create a new environment with:
 ```bash
@@ -30,7 +30,7 @@ conda env create -f environment.yml
 ```
 and then activate the environment with:
 ```bash
-conda activate memoria
+conda activate thesis
 ```
 - Download the dataset from [M&M's Challenge](https://www.ub.edu/mnms/)
 - Download models weights:
